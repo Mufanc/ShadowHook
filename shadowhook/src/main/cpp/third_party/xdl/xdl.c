@@ -430,6 +430,8 @@ static xdl_t *xdl_find_from_auxv(unsigned long type, const char *pathname) {
   return self;
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 static int xdl_find_iterate_cb(struct dl_phdr_info *info, size_t size, void *arg) {
   (void)size;
 
@@ -450,7 +452,10 @@ static int xdl_find_iterate_cb(struct dl_phdr_info *info, size_t size, void *arg
       if (!xdl_util_ends_with(filename, info->dlpi_name)) return 0;
     }
   } else {
-    if ('/' == info->dlpi_name[0]) {
+    if (xdl_util_starts_with(info->dlpi_name, "/memfd:")) {
+      // Todo: strong check
+      if (!xdl_util_starts_with(info->dlpi_name + 7, filename)) return 0;
+    } else if ('/' == info->dlpi_name[0]) {
       if (!xdl_util_ends_with(info->dlpi_name, filename)) return 0;
     } else {
       if (0 != strcmp(info->dlpi_name, filename)) return 0;
@@ -471,6 +476,7 @@ static int xdl_find_iterate_cb(struct dl_phdr_info *info, size_t size, void *arg
   (*self)->symtab_try_load = false;
   return 1;  // return OK
 }
+#pragma clang diagnostic pop
 
 static xdl_t *xdl_find(const char *filename) {
   // from auxv (linker, vDSO)

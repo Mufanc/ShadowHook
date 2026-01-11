@@ -50,7 +50,7 @@ static jint sh_jni_init(JNIEnv *env, jobject thiz, jint mode, jboolean debuggabl
   else
     return SHADOWHOOK_ERRNO_INVALID_ARG;
 
-  return shadowhook_init(enum_mode, (bool)debuggable);
+  return shadowhook_init(enum_mode, (bool)debuggable, 0);
 }
 
 static jint sh_jni_get_init_errno(JNIEnv *env, jobject thiz) {

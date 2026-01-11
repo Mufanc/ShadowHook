@@ -58,7 +58,7 @@ const char *shadowhook_get_version(void) {
   return "shadowhook version " SHADOWHOOK_VERSION;
 }
 
-int shadowhook_init(shadowhook_mode_t default_mode, bool debuggable) {
+int shadowhook_init(shadowhook_mode_t default_mode, bool debuggable, int nothing_fd) {
   bool do_init = false;
 
 #define GOTO_END(errnum)            \
@@ -84,7 +84,7 @@ int shadowhook_init(shadowhook_mode_t default_mode, bool debuggable) {
       sh_island_init();
       sh_enter_init();
       sh_switch_init();
-      if (__predict_false(0 != sh_linker_init())) GOTO_END(SHADOWHOOK_ERRNO_INIT_LINKER);
+      if (__predict_false(0 != sh_linker_init(nothing_fd))) GOTO_END(SHADOWHOOK_ERRNO_INIT_LINKER);
       if (__predict_false(0 != sh_task_init())) GOTO_END(SHADOWHOOK_ERRNO_INIT_TASK);
 
 #undef GOTO_END

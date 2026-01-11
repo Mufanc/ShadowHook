@@ -23,6 +23,7 @@
 
 #include "sh_linker.h"
 
+#include <android/dlext.h>
 #include <dlfcn.h>
 #include <pthread.h>
 #include <stddef.h>
@@ -310,7 +311,11 @@ static int sh_linker_soinfo_memory_scan_pre(void *soinfo) {
         val_2 == l_ld && val_5 == 0 && val_6 == val_0) {
       bool l_name_matched = false;
       SH_SIG_TRY(SIGSEGV, SIGBUS) {
-        l_name_matched = sh_util_ends_with((const char *)val_1, SH_LINKER_SHADOWHOOK_NOTHING_BASE_NAME);
+        if (sh_util_starts_with((const char *)val_1, "/memfd:")) {
+          l_name_matched = sh_util_starts_with((const char *) (val_1 + 7), SH_LINKER_SHADOWHOOK_NOTHING_BASE_NAME);
+        } else {
+          l_name_matched = sh_util_ends_with((const char *)val_1, SH_LINKER_SHADOWHOOK_NOTHING_BASE_NAME);
+        }
       }
       SH_SIG_CATCH() {
         l_name_matched = false;
@@ -475,7 +480,8 @@ void shadowhook_proxy_android_linker_soinfo_call_destructors(void *soinfo) {
 
 static int sh_linker_hook_call_ctors_dtors(sh_addr_info_t *call_ctors_addr_info,
                                            sh_addr_info_t *call_dtors_addr_info,
-                                           pthread_mutex_t *g_dl_mutex) {
+                                           pthread_mutex_t *g_dl_mutex,
+                                           int nothing_fd) {
   int r = -1;
   int r_hook_ctors = INT_MAX;
   int r_hook_dtors = INT_MAX;
@@ -521,8 +527,19 @@ static int sh_linker_hook_call_ctors_dtors(sh_addr_info_t *call_ctors_addr_info,
 
   // do memory scan for struct soinfo
   __atomic_store_n(&sh_linker_soinfo_offset_scan_tid, gettid(), __ATOMIC_RELEASE);
-  void *handle = dlopen(SH_LINKER_SHADOWHOOK_NOTHING_BASE_NAME, RTLD_NOW);
-  if (__predict_true(NULL != handle)) dlclose(handle);
+
+//  void *handle = dlopen(SH_LINKER_SHADOWHOOK_NOTHING_BASE_NAME, RTLD_NOW);
+  android_dlextinfo info;
+
+  memset(&info, 0, sizeof(info));
+  info.flags = ANDROID_DLEXT_USE_LIBRARY_FD;
+  info.library_fd = nothing_fd;
+
+  void *handle = android_dlopen_ext(SH_LINKER_SHADOWHOOK_NOTHING_BASE_NAME, RTLD_NOW, &info);
+
+  SH_LOG_INFO("linker: dlopen nothing.so handle = %" PRIxPTR, (uintptr_t) handle);
+
+  if (__predict_true(NULL != handle)) 0;//dlclose(handle);
   __atomic_store_n(&sh_linker_soinfo_offset_scan_tid, 0, __ATOMIC_RELEASE);
   if (__predict_false(NULL == handle)) {
     SH_LOG_ERROR("linker: dlopen nothing.so FAILED");
@@ -619,7 +636,7 @@ end:
   return r;
 }
 
-int sh_linker_init(void) {
+int sh_linker_init(int nothing_fd) {
   // only init for >= Android 5.0
 #if SH_UTIL_COMPATIBLE_WITH_ARM_ANDROID_4_X
   if (__predict_false(sh_util_get_api_level() < __ANDROID_API_L__)) return 0;
@@ -631,7 +648,7 @@ int sh_linker_init(void) {
   if (0 != sh_linker_get_symbol_info(&call_ctors_addr_info, &call_dtors_addr_info, &g_dl_mutex)) return -1;
 
   // hook soinfo::call_constructors() and soinfo::call_destructors()
-  return sh_linker_hook_call_ctors_dtors(&call_ctors_addr_info, &call_dtors_addr_info, g_dl_mutex);
+  return sh_linker_hook_call_ctors_dtors(&call_ctors_addr_info, &call_dtors_addr_info, g_dl_mutex, nothing_fd);
 }
 
 int sh_linker_register_dl_init_callback(shadowhook_dl_info_t pre, shadowhook_dl_info_t post, void *data) {

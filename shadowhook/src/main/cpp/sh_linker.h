@@ -28,7 +28,7 @@
 #include "sh_util.h"
 #include "shadowhook.h"
 
-int sh_linker_init(void);
+int sh_linker_init(int nothing_fd);
 
 // for Android 4.x
 #if SH_UTIL_COMPATIBLE_WITH_ARM_ANDROID_4_X

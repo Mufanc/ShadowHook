@@ -12,7 +12,7 @@ endif()
 
 set(TARGET "shadowhook")
 file(GLOB SRC *.c arch/${ARCH}/*.c arch/${ARCH}/*.S common/*.c third_party/*/*.c)
-add_library(${TARGET} SHARED ${SRC})
+add_library(${TARGET} STATIC ${SRC})
 target_compile_features(${TARGET} PRIVATE c_std_11)
 target_compile_options(${TARGET} PRIVATE -Weverything -Werror)
 target_include_directories(${TARGET} PRIVATE . include arch/${ARCH} common third_party/xdl third_party/bsd third_party/lss)
@@ -34,3 +34,6 @@ find_program(LLVM_OBJCOPY_PATH NAMES "llvm-objcopy" PATHS ${ANDROID_NDK}/toolcha
 if(LLVM_OBJCOPY_PATH)
     add_custom_command(TARGET ${TARGET} POST_BUILD COMMAND ${LLVM_OBJCOPY_PATH} --remove-section=.comment --remove-section=.ARM.attributes $<TARGET_FILE:${TARGET}>)
 endif()
+
+add_custom_target(shadowhook_libs)
+add_dependencies(shadowhook_libs shadowhook shadowhook_nothing)

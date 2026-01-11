@@ -99,7 +99,7 @@ typedef enum {
   // The same address can be hooked multiple times
   SHADOWHOOK_MODE_MULTI = 2
 } shadowhook_mode_t;
-int shadowhook_init(shadowhook_mode_t default_mode, bool debuggable);
+int shadowhook_init(shadowhook_mode_t default_mode, bool debuggable, int nothing_fd);
 int shadowhook_get_init_errno(void);
 
 // get and set attributes
