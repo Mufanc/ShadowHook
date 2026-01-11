@@ -84,7 +84,7 @@ const char *sh_errno_to_errmsg(int error_number) {
                               /* 17 */ "Open ELF crashed",
                               /* 18 */ "Find symbol in ELF failed",
                               /* 19 */ "Find symbol in ELF crashed",
-                              /* 20 */ "Duplicate unique ook",
+                              /* 20 */ "Duplicate unique hook",
                               /* 21 */ "Dladdr crashed",
                               /* 22 */ "Find dlinfo failed",
                               /* 23 */ "Symbol size too small",
